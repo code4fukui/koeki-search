@@ -1,0 +1,244 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<title>公益財団検索</title>
+<style>
+:root {
+  --max-width: 80vw;
+}
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f9f9f9;
+  color: #333;
+  padding: 20px;
+  text-align: center;
+  box-sizing: border-box;
+}
+h1 {
+  color: #135c16;
+}
+input[type="text"] {
+  width: 100%;
+  max-width: var(--max-width);
+  padding: 15px;
+  margin: 20px .5em .5em .5em;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+}
+select {
+  padding: 10px;
+  margin: .5em .5em 1em .5em;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+}
+label {
+  display: inline-block;
+  padding: 15px 0 5px 0;
+  vertical-align: bottom;
+  margin: .5em .5em 1em .5em;
+  font-size: 16px;
+}
+input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #bdbdbd;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+input[type="checkbox"]:hover {
+  transform: scale(1.1);
+}
+#spancnt {
+  display: inline-block;
+  padding: 15px 0 5px 0;
+  vertical-align: bottom;
+  margin: .5em .5em 1em .5em;
+  font-size: 16px;
+  width: 10em;
+  text-align: left;
+}
+ul {
+  display: inline-block;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  x-max-width: var(--max-width);
+}
+li {
+  background-color: #fff;
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s;
+  cursor: pointer;
+}
+li:hover {
+  background-color: #f1f1f1;
+}
+.hidden {
+  display: none;
+}
+.details {
+  text-align: left;
+  margin-top: 10px;
+  font-size: 14px;
+  color: #555;
+  display: none;
+  cursor: default;
+}
+.details th {
+  vertical-align: top;
+  padding-top: .3em;
+  padding-right: .8em;
+}
+.details td {
+  padding-top: .3em;
+  white-space: pre-wrap;
+  vertical-align: top;
+}
+li.expanded .details {
+  display: block;
+}
+footer {
+  margin-top: 1em;
+}
+footer a {
+  color: gray !important;
+}
+</style>
+</head>
+<body>
+<h1>公益財団検索</h1>
+<input type="text" id="intext" placeholder="キーワードを入力... スペース区切りでAND、|区切りでOR"><br>
+<select id=selpref></select>
+<label><input type="checkbox" checked id=chkall>内閣府管轄の全国向けを含める</label>
+<span id=spancnt></span><br>
+<ul id="ullist">
+</ul>
+
+<script type="module">
+import { JAPAN_PREF } from "https://js.sabae.cc/JAPAN_PREF.js";
+import { cr } from "https://js.sabae.cc/cr.js";
+import { CSV } from "https://js.sabae.cc/CSV.js";
+
+const opt0 = cr("option", selpref);
+opt0.textContent = "全国";
+opt0.value = "";
+for (const pref of JAPAN_PREF) {
+  const opt = cr("option", selpref);
+  opt.textContent = pref;
+}
+const params = location.hash.substring(1).split(",");
+intext.value = decodeURIComponent(params[0] || "");
+selpref.value = decodeURIComponent(params[1]);
+chkall.checked = (params[2] || 1) == 1;
+
+const data = await CSV.fetchJSON("./koeki-zaidan.csv");
+const sortfunc = (a) => a["行政庁"] == "内閣府" ? 0 : 1;
+data.sort((a, b) => sortfunc(a) - sortfunc(b));
+
+const match = (obj, query) => {
+  const keys = query.replace(/　/g, " ").split(" ");
+  for (const key of keys) {
+    let flg = false;
+    const orkeys = key.split("|");
+    if (orkeys.length > 1) {
+      for (const name in obj) {
+        const v = obj[name];
+        for (const orkey of orkeys) {
+          if (v.indexOf(orkey) >= 0) {
+            flg = true;
+            break;
+          }
+        }
+      }
+    } else {
+      for (const name in obj) {
+        const v = obj[name];
+        if (v.indexOf(key) >= 0) {
+          flg = true;
+          break;
+        }
+      }
+    }
+    if (!flg) return false;
+  }
+  return true;
+};
+
+const show  = () => {
+  location.hash = intext.value + "," + selpref.value + "," + (chkall.checked ? 1 : 0);
+  const query = intext.value;
+  const pref = selpref.value;
+  const maxcnt = 500;
+  let idx = 0;
+  const isall = chkall.checked;
+  ullist.innerHTML = "";
+  for (const item of data) {
+    if (!match(item, query)) continue;
+    if (pref != "" && item["行政庁"] != pref && item["行政庁"] != "内閣府") continue;
+    if (!isall && item["行政庁"] == "内閣府") continue;
+    if (++idx >= maxcnt) {
+      if (idx == maxcnt) {
+        const li = cr("li", ullist);
+        li.textContent = "and more ...";
+      }
+      continue;
+    }
+
+    const li = cr("li", ullist);
+    // seqCorp,法人コード,法人の名称,法人の名称フリガナ,法人区分,行政庁,法人番号(JCN),郵便番号,主たる事務所の住所,代表電話番号,代表者の氏名,ホームページアドレス,事業年度,事業の種類,事業の概要,税額控除に係る証明
+    const name = item["法人の名称"];
+    const belong = (item["行政庁"] != "内閣府" ? " (" + item["行政庁"] + ")" : "");
+    //const belong = " (" + item["行政庁"] + ")";
+    li.textContent = (name.startsWith("公益財団法人") ? name.substring(6) : name) + belong;
+
+    const tbl = cr("table", li, "details");
+    for (const name in item) {
+      if (name == "seqCorp") continue;
+      const v = item[name];
+      if (v == "") continue;
+      const tr = cr("tr", tbl);
+      cr("th", tr).textContent = name;
+      const makeA = (url, text) => {
+        const a = cr("a", cr("td", tr));
+        a.href = url;
+        a.textContent = text;
+        a.target = "_blank";
+      };
+      if (v.startsWith("http://") || v.startsWith("https://")) {
+        makeA(v, v);
+      } else if (name == "法人番号(JCN)") {
+        const url = "https://www.houjin-bangou.nta.go.jp/henkorireki-johoto.html?selHouzinNo=" + v;
+        makeA(url, v);
+      } else {
+        cr("td", tr).textContent = item[name];
+      }
+    }
+    
+    li.onclick = (e) => {
+      const src = e.srcElement;
+      if (src != li) return;
+      li.classList.toggle('expanded');
+    };
+  }
+  spancnt.textContent = "→ 一致件数 " + idx + "件";
+};
+show();
+intext.oninput = selpref.oninput = chkall.oninput = () => show();
+</script>
+
+<footer>
+<hr>
+DATA: <a href=https://www.koeki-info.go.jp/pictis-info/csa0001!show#prepage2>国・都道府県公式公益法人行政総合情報サイト 公益法人information</a> → <a href=https://github.com/code4fukui/koeki-opendata/>公益法人オープンデータ</a><br>
+APP: <a href=https://github.com/code4fukui/koeki-search/>src on GitHub</a>
+</footer>
+</body>
+</html>
