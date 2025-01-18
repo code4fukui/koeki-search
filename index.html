@@ -140,7 +140,8 @@ intext.value = decodeURIComponent(params[0] || "");
 selpref.value = decodeURIComponent(params[1]);
 chkall.checked = (params[2] || 1) == 1;
 
-const data = await CSV.fetchJSON("./koeki-zaidan.csv");
+const url = "https://code4fukui.github.io/koeki-opendata/koeki-zaidan.csv";
+const data = await CSV.fetchJSON(url);
 const sortfunc = (a) => a["行政庁"] == "内閣府" ? 0 : 1;
 data.sort((a, b) => sortfunc(a) - sortfunc(b));
 
