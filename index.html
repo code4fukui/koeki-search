@@ -231,6 +231,10 @@ const show  = () => {
     };
   }
   spancnt.textContent = "→ 一致件数 " + idx + "件";
+  if (idx == 1) {
+    const li = ullist.childNodes[0];
+    li.onclick({ srcElement: li });
+  }
 };
 show();
 intext.oninput = selpref.oninput = chkall.oninput = () => show();
