@@ -137,7 +137,7 @@ for (const pref of JAPAN_PREF) {
 }
 const params = location.hash.substring(1).split(",");
 intext.value = decodeURIComponent(params[0] || "");
-selpref.value = decodeURIComponent(params[1]);
+selpref.value = decodeURIComponent(params[1] || "");
 chkall.checked = (params[2] || 1) == 1;
 
 const url = "https://code4fukui.github.io/koeki-opendata/koeki-zaidan.csv";
