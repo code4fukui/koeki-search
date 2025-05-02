@@ -1,0 +1,270 @@
+
+<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="icon" href="data:">
+<title>公益財団法人ダッシュボード</title>
+<meta name="format-detection" content="telephone=no"/>
+</head>
+<body>
+
+<h1>公益財団法人ダッシュボード</h1>
+<h2 id=h2title></h2>
+<!--
+<select id=seltype></select><br>
+-->
+
+<div id="tmapc"></div>
+<button id="back">もどる</button>
+<div id="divcontent"></div>
+
+→ <a href=./>公益財団検索</a><br>
+
+<div class="credit">
+APP: <a href=https://github.com/code4fukui/koeki-search/>src on GitHub</a><br>
+LAYOUT: <a href=tabularmaps_japan.csv>TabularMaps Japan - 日本カラム地図 CSV</a> CC0 <a href=https://github.com/tabularmaps/hq>カラム地図 / TabularMaps on Github</a><br>
+DATA: <a href=https://www.koeki-info.go.jp/pictis-info/csa0001!show#prepage2>国・都道府県公式公益法人行政総合情報サイト 公益法人information</a> → <a href=https://github.com/code4fukui/koeki-opendata/>公益法人オープンデータ</a><br>
+</div>
+
+<script type="module">
+import { CSV } from "https://js.sabae.cc/CSV.js";
+import { makeGrids } from "https://code4fukui.github.io/opendata-japan/makeGrids.js";
+import { cr } from "https://js.sabae.cc/cr.js";
+import { ArrayUtil } from "https://js.sabae.cc/ArrayUtil.js";
+import { JAPAN_PREF } from "https://js.sabae.cc/JAPAN_PREF.js";
+import { Num } from "https://js.sabae.cc/Num.js";
+
+const url = "https://code4fukui.github.io/koeki-opendata/koeki-zaidan.csv";
+const data0 = await CSV.fetchJSON(url);
+const data = data0.filter(i => i.行政庁 != "内閣府");
+console.log(data);
+
+// 人口データ
+const url2 = "https://code4fukui.github.io/ndb-dashboard/population-japan.csv";
+const datap0 = await CSV.fetchJSON(url2);
+console.log(datap0);
+const datap = {};
+const year = 2022;
+JAPAN_PREF.forEach(i => {
+  datap[i] = parseInt(datap0.find(j => j.地域 == i)[year + "年"]) * 1000;
+});
+console.log("人口(" + year + ")", datap);
+
+/*
+const url_citiesjp = "https://code4fukui.github.io/localgovjp/localgovjp-utf8.csv"
+const cities = await CSV.fetchJSON(url_citiesjp)
+const getCityData = function(pref, city) {
+  for (const d of cities) {
+    if (d.pref == pref && d.city == city) {
+      return d
+    }
+  }
+  return null
+}
+*/
+
+const area = await CSV.fetchJSON("https://tabularmaps.github.io/areamap/tabularmaps_japan.csv")
+console.log(area);
+//checkTabularMaps(area, cities)
+
+const parseInt2 = (s) => {
+  const n = parseInt(s);
+  if (isNaN(n)) return 0;
+  return n;
+};
+
+const showContent = (json) => {
+  const tbl = cr("table");
+  for (const name in json) {
+    const tr = cr("tr", tbl);
+    cr("th", tr).textContent = name;
+    cr("td", tr).textContent = json[name];
+  }
+  divcontent.innerHTML = "";
+  divcontent.appendChild(tbl);
+};
+
+const showContentRanking = (title, data) => {
+  divcontent.innerHTML = "";
+  cr("h2", divcontent).textContent = title;
+
+  const make = () => {
+    const tbl = cr("table", divcontent);
+    const tr = cr("tr", tbl);
+    cr("th", tr).textContent = "順位";
+    cr("th", tr).textContent = "都道府県";
+    cr("th", tr).textContent = "はい回答数";
+    cr("th", tr).textContent = "はい回答率";
+    return tbl;
+  };
+  const set = (tr, idx, d) => {
+    cr("td", tr).textContent = idx + "位";
+    cr("td", tr).textContent = d.pref;
+    cr("td", tr).textContent = Num.addComma(d.value);
+    cr("td", tr).textContent = d.ratio.toFixed(2) + "%";
+    tr.style.backgroundColor = d.backgroundColor;
+  };
+  const tbl1 = make();
+  for (let i = 0; i < 47 / 2; i++) {
+    const d = data[i];
+    const tr = cr("tr", tbl1);
+    set(tr, i + 1, d);
+  }
+  const tbl2 = make();
+  for (let i = 46; i > 47 / 2; i--) {
+    const d = data[i];
+    const tr = cr("tr", tbl2);
+    set(tr, i + 1, d);
+  }
+};
+
+const show = function(name) {
+  //const type = seltype.value;
+  //location.hash = encodeURIComponent(type);
+  
+  const data3 = JAPAN_PREF.map(i => {
+    const value = data.filter(j => j.行政庁 == i).length;
+    const p = datap[i];
+    const ratio = value / p * 100000;
+    return { pref: i, ratio, value };
+  });
+  console.log(data3);
+  /*
+  const data3 = JAPAN_PREF.map(pref => {
+    const p = datap[pref];
+    const value = parseInt2(data2[pref]);
+    const ratio = (value / p * 10000).toFixed(2);
+    return { pref, value, ratio };
+  });
+  */
+  data3.sort((a, b) => {
+    return a.ratio - b.ratio;
+  });
+  const min = data3[0].ratio;
+  const max = data3[data3.length - 1].ratio;
+  data3.forEach(i => {
+    const ratio2 = (i.ratio - min) / (max - min);
+    i.backgroundColor = `hsl(120, 50%, ${100 - ratio2 * 50}%)`;
+  });
+  console.log(data3);
+  //showContentRanking(q + "（" + seltype.value + "） はい回答数 都道府県別ランキング", data3);
+
+  let tmapdata = area[0];
+  for (const d of area) {
+    if (d.name == name) {
+      tmapdata = d;
+      break;
+    }
+  }
+  back.style.display = tmapdata == area[0] ? "none" : "inline-block"
+  
+  const tmap = makeGrids(tmapdata.tabularmap);
+  tmapc.innerHTML = "";
+  tmapc.appendChild(tmap);
+  if (globalThis.tmtitle) {
+    tmtitle.textContent = tmapdata.name_ja
+  }
+
+  for (const c of tmap.children) {
+    const name = c.textContent;
+    c.bkname = name;
+    if (name != "-") {
+      const d = data3.find(i => i.pref == name);
+      c.innerHTML += `<br>${Num.addComma(d.value)}法人<br>${d.ratio.toFixed(2)}/10万人`;
+      c.style.backgroundColor = d.backgroundColor;
+      c.onclick = () => {
+        const data1 = data.filter(i => i.行政庁 == name);
+        divcontent.innerHTML = `${name}の公益財団法人数 ${data1.length}法人<br>` + data1.reverse().map(i => `<a href=${i.ホームページアドレス} target=_blank>${i.法人の名称}</a>`).join("<br>");
+      };
+    }
+  }
+  divcontent.innerHTML = `全公益財団法人数 ${data0.length}法人（内閣府管轄 ${data0.length - data.length}法人）`;
+}
+show("Japan");
+
+//seltype.oninput = () => show("Japan");
+
+/*
+onhashchange = () => {
+  const hash = document.location.hash;
+  if (hash.length > 1) {
+    //show(hash.substring(1));
+    seltype.value = decodeURIComponent(hash.substring(1));
+  }
+  show("Japan");
+};
+onhashchange()
+
+back.onclick = () => {
+  document.location.hash = ""
+};
+*/
+
+</script>
+<style>
+body {
+  font-family: sans-serif;
+  text-align: center;
+}
+h1 {
+  font-size: 3vw;
+  margin-top: 2vw;
+}
+#seltype {
+  font-size: 120%;
+  padding: .2em;
+  margin: .5em;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* tabularmaps */
+#tmapc span {
+  font-size: min(2.0vmax, 14px);
+  align-items: center;
+  justify-content: center;
+  border-radius: .5vmax;
+  border: .1vmax solid #333;
+  padding: .2vmax .2vmax;
+  margin: .2vmax;
+}
+/* other */
+#tmtitle {
+  color: black;
+}
+#back {
+  display: none;
+  margin: 1vw;
+  padding: .5vw;
+}
+/* credit */
+.credit {
+  margin: 20px;
+  text-align: center;
+  font-size: 80%;
+}
+.credit a {
+  color: #666 !important;
+}
+/* content */
+#divcontent {
+  border: 1px solid gray;
+  padding: .5em;
+  margin: .1em;
+}
+table {
+  border-collapse: collapse;
+  display: inline-block;
+  vertical-align: top;
+  margin: 1em;
+}
+th, td {
+  border: 1px solid black;
+  padding: .2em;
+  text-align: right;
+}
+h2 {
+  margin: .5em 0 0 0;
+  padding: 0;
+}
+</style>
+
+</body>
+</html>
