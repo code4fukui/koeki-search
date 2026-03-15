@@ -1,5 +1,7 @@
 # koeki-search
 
+> 日本語のREADMEはこちらです: [README.ja.md](README.ja.md)
+
 A search engine for public interest foundations in Japan.
 
 ## Demo
