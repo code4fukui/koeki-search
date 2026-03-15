@@ -1,7 +1,18 @@
-# koeki-search 公益財団検索
+# koeki-search
 
-- [公益財団検索](https://code4fukui.github.io/koeki-search/)
+A search engine for public interest foundations in Japan.
 
-## reference
+## Demo
+[https://code4fukui.github.io/koeki-search/](https://code4fukui.github.io/koeki-search/)
 
-- [公益法人オープンデータ](https://github.com/code4fukui/koeki-opendata)
+## Features
+- Search public interest foundations by keyword
+- Filter by prefecture
+- Show total number of matching foundations
+- Display detailed information about each foundation
+
+## Data / API
+This project uses data from the [Open Data of Public Interest Corporations](https://github.com/code4fukui/koeki-opendata) project.
+
+## License
+MIT License
