@@ -17,4 +17,4 @@ A search engine for public interest foundations in Japan.
 This project uses data from the [Open Data of Public Interest Corporations](https://github.com/code4fukui/koeki-opendata) project.
 
 ## License
-MIT License
+MIT License — see [LICENSE](LICENSE).
